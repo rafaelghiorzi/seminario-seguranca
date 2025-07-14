@@ -16,14 +16,19 @@ class Transacao:
         self.id = uuid4()
         self.assinatura = None
 
-        self.mensagem = f"{self.remetente}-{self.destinatario}-{self.conteudo}-{self.timestamp}".encode('utf-8')
+    def _gerar_mensagem(self) -> bytes:
+        """
+        Gera a mensagem que será assinada
+        """
+        return f"{self.remetente}-{self.destinatario}-{self.conteudo}-{self.timestamp}".encode('utf-8')
 
     def assinar(self, chave_privada: RSAPrivateKey) -> None:
         """
         Assina a transação com a chave privada do remetente
         """
+        mensagem = self._gerar_mensagem()
         self.assinatura = chave_privada.sign(
-            self.mensagem,
+            mensagem,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
@@ -35,12 +40,13 @@ class Transacao:
         """
         Verifica a assinatura da transação
         """
+        mensagem = self._gerar_mensagem()
         if not self.assinatura:
             return False
         try:
             chave_publica.verify(
                 self.assinatura,
-                self.mensagem,
+                mensagem,
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
                     salt_length=padding.PSS.MAX_LENGTH

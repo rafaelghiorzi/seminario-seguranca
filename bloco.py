@@ -44,6 +44,8 @@ class Bloco:
         """
         Verifica a assinatura do bloco
         """
+        if not self.transacao.validar(chave_publica):
+            return False
         if self.assinatura is None or self.hash is None:
             return False
         if self.hash != self.calcular_hash():

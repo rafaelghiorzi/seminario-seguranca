@@ -1,10 +1,12 @@
 from uuid import UUID
 from bloco import Bloco
-from usuario import Usuario
 from transacao import Transacao
 from collections import defaultdict
-from typing import List, Dict, Set, Optional, DefaultDict
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from typing import List, Dict, Set, Optional, DefaultDict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from usuario import Usuario
 
 class Blockchain:
     """
@@ -44,6 +46,7 @@ class Blockchain:
         )
 
         bloco.hash = bloco.calcular_hash()
+        bloco.assinatura = None
         self.cadeia.append(bloco)
         self.tamanho = 1
 
@@ -102,11 +105,48 @@ class Blockchain:
 
         # 5. Checando consenso dos usuários
         if len(self.usuarios_registrados) > 1:
+            favoraveis = 0
+            total_usuarios = len([u for u in self.usuarios_registrados if u.id != bloco.minerador])
+
+            # Registrar início do consenso
+            import streamlit as st
+            import datetime
+            if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                st.session_state.log_consenso.append({
+                    'timestamp': timestamp,
+                    'nivel': 'INFO',
+                    'mensagem': f"Iniciando consenso para bloco {str(bloco.id)[:8]}... ({total_usuarios} validadores)"
+                })
+
             for usuario in self.usuarios_registrados:
                 if usuario.id != bloco.minerador:
-                    if not usuario.consentir(bloco):
-                        return False
+                    if usuario.consentir(bloco):
+                        favoraveis += 1
+
+            # Maioria simples
+            if favoraveis <= total_usuarios // 2:
+                mensagem = f"Bloco rejeitado: apenas {favoraveis}/{total_usuarios} votos favoráveis"
+                print(f"FALHA: Bloco minerado por {bloco.minerador} não obteve consenso.")
+                
+                if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+                    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                    st.session_state.log_consenso.append({
+                        'timestamp': timestamp,
+                        'nivel': 'ERROR',
+                        'mensagem': mensagem
+                    })
+                return False
+            
+            # Consenso alcançado
             print(f"Bloco {bloco.id} minerado por {bloco.minerador} com sucesso!")
+            if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+                st.session_state.log_consenso.append({
+                    'timestamp': timestamp,
+                    'nivel': 'SUCCESS',
+                    'mensagem': f"Consenso alcançado! {favoraveis}/{total_usuarios} votos favoráveis - Bloco adicionado"
+                })
 
         self.cadeia.append(bloco)
         self.tamanho += 1

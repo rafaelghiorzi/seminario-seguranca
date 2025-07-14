@@ -5,6 +5,7 @@ from transacao import Transacao
 from blockchain import Blockchain
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey, RSAPrivateKey
+import datetime
 
 class Usuario:
     """
@@ -31,6 +32,11 @@ class Usuario:
         """
         Cria uma nova transação e a assina com a chave privada do usuário.
         """
+        if not isinstance(destinatario_id, UUID):
+            raise ValueError("O destinatário deve ser um UUID válido")
+        if not conteudo or not isinstance(conteudo, str):
+            raise ValueError("O conteúdo da transação deve ser uma string não vazia")
+
         transacao = Transacao(
             remetente=self.id,
             destinatario=destinatario_id,
@@ -67,17 +73,47 @@ class Usuario:
 
     def consentir(self, bloco: Bloco) -> bool:
         """
-        [NOVO] Função de validação chamada pelo mecanismo de consenso da blockchain.
+        Função de validação chamada pelo mecanismo de consenso da blockchain.
         O usuário verifica se o bloco proposto é válido de acordo com sua visão da cadeia.
         """
+        # Registrar no log de consenso (se disponível)
+        import streamlit as st
+        if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        
         # Um usuário sempre confia na sua própria visão do último bloco.
         if bloco.hash_anterior != self.blockchain.ultimo_bloco().hash:
+            mensagem = f"{self.nome}: Rejeitando bloco - hash anterior não confere"
             print(f"DEBUG ({self.nome}): Rejeitando, hash anterior não bate.")
+            
+            if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+                st.session_state.log_consenso.append({
+                    'timestamp': timestamp,
+                    'nivel': 'WARNING',
+                    'mensagem': mensagem
+                })
             return False
 
         chave_minerador = self.blockchain.get_chave(bloco.minerador)
         if not chave_minerador or not bloco.validar(chave_minerador):
+            mensagem = f"{self.nome}: Rejeitando bloco - assinatura inválida"
             print(f"DEBUG ({self.nome}): Rejeitando, assinatura do minerador inválida.")
+            
+            if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+                st.session_state.log_consenso.append({
+                    'timestamp': timestamp,
+                    'nivel': 'WARNING',
+                    'mensagem': mensagem
+                })
             return False
 
+        # Voto favorável
+        mensagem = f"{self.nome}: Aprovando bloco {str(bloco.id)[:8]}..."
+        if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
+            st.session_state.log_consenso.append({
+                'timestamp': timestamp,
+                'nivel': 'SUCCESS',
+                'mensagem': mensagem
+            })
+        
         return True
