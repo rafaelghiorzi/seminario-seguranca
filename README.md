@@ -1,9 +1,9 @@
 ## Blockchain Privado com Validação de Transações via Assinatura
-## Segurança Computacional - 2025.1 - Turma 02 - Universidade de Brasília
-## Integrantes:
-### Lucas Gabriel de Oliveira Lima (https://github.com/lucasdbr05)
-### Pedro Lucas Pereira Neris (https://github.com/pedro-neris)
-### Rafael Dias Ghiorzi (https://github.com/rafaelghiorzi)
+### Segurança Computacional - 2025.1 - Turma 02 - Universidade de Brasília
+### Integrantes:
+#### Lucas Gabriel de Oliveira Lima (https://github.com/lucasdbr05)
+#### Pedro Lucas Pereira Neris (https://github.com/pedro-neris)
+#### Rafael Dias Ghiorzi (https://github.com/rafaelghiorzi)
 
 Este projeto implementa um **sistema de blockchain privado** com foco em criação e validação de transações através de assinaturas digitais e com um fluxo de blocos, com mecanismo de consenso para autorizar ou não a entrada de um bloco na cadeia. Este trabalho foi desenvolvido para o seminário da disciplina de Segurança Computacional da Universidade de Brasília no semestre 2025.1. 
 
