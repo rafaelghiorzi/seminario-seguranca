@@ -1,4 +1,4 @@
-## Blockchain Privado com Validação de Transações via Assinatura
+# Blockchain Privado com Validação de Transações via Assinatura
 ### Segurança Computacional - 2025.1 - Turma 02 - Universidade de Brasília
 ### Integrantes:
 #### Lucas Gabriel de Oliveira Lima (https://github.com/lucasdbr05)
