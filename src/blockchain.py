@@ -1,12 +1,12 @@
 from uuid import UUID
-from bloco import Bloco
-from transacao import Transacao
+from src.bloco import Bloco
+from src.transacao import Transacao
 from collections import defaultdict
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from typing import List, Dict, Set, Optional, DefaultDict, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from usuario import Usuario
+    from src.usuario import Usuario
 
 class Blockchain:
     """

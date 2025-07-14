@@ -3,3 +3,4 @@ plotly>=5.15.0
 networkx>=3.1
 pandas>=2.0.0
 cryptography>=41.0.0
+faker>=37.4.0

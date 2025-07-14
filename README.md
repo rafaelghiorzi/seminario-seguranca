@@ -95,6 +95,20 @@ A aplicação será executada em: **http://localhost:8501**
 - **Integridade da Cadeia**: Verificação completa da blockchain
 - **Prevenção de Fraudes**: Sistema resistente a alterações maliciosas
 
+Em uma blockchain real, as transações realizadas ne rede são
+compartilhadas e passam para uma _mempool_ de transações não
+confirmadas. Mineradores juntam essas transações em um bloco
+candidato e realizam um proof of work (um quebra-cabeça) que
+demonstra o esforço e compartilham esse bloco para a rede, e
+os usuários validam as informações contidas nesse bloco. Se
+um consenso é atingido, o bloco é adicionado à blockchain e o
+minerador ganha uma taxa de cada transação como recompensa por
+ajudar na organização da blockchain.  
+No nosso caso, não realizamos proof of work e mempool, todas as
+transações são assinadas e adicionada em um bloco contendo uma
+única transação, e o bloco é minerado, sem proof of work, pelo
+próprio criador da transação única.
+
 ## 🔍 Como Usar
 
 1. **Inicie a aplicação** executando `streamlit run main.py`

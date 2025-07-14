@@ -1,7 +1,7 @@
 import hashlib
 import datetime
 from uuid import uuid4, UUID
-from transacao import Transacao
+from src.transacao import Transacao
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey, RSAPrivateKey
