@@ -1,22 +1,16 @@
-import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
-import networkx as nx
-import pandas as pd
-import json
 import time
-import random
-from uuid import UUID, uuid4
-from datetime import datetime
-from typing import List, Dict, Any
 import faker
-
+import random
+import pandas as pd
+from uuid import UUID
+import networkx as nx
+import streamlit as st
 from src.bloco import Bloco
 from src.usuario import Usuario
+import plotly.graph_objects as go
 from src.transacao import Transacao
 from src.blockchain import Blockchain
 
-# Configuração da página
 st.set_page_config(
     page_title="Blockchain Educacional",
     page_icon="⛓️",
@@ -30,20 +24,18 @@ def iniciar_demo():
         st.session_state.blockchain = Blockchain()
         
         # Criar usuários demonstrativos
-        fake = faker.Faker()
+        fake = faker.Faker('pt_BR')
         st.session_state.usuarios = []
-        for _ in range(8):
+        for _ in range(35):
             nome = fake.name()
-            usuario = Usuario(nome, st.session_state.blockchain)
+            usuario = Usuario(nome, st.session_state.blockchain, random.uniform(10, 100))
             st.session_state.usuarios.append(usuario)
         
-        st.session_state.usuario_atual = st.session_state.usuarios[0]
         st.session_state.transacoes_pendentes = []
-        st.session_state.verificacao_log = []
 
 def exibir_grafo():
     """Visualiza o grafo de relacionamento da comunidade"""
-    st.subheader("🌐 Grafo da Comunidade")
+    st.subheader("Grafo da Comunidade")
     blockchain = st.session_state.blockchain
 
     if not blockchain.comunidade:
@@ -146,7 +138,7 @@ def exibir_grafo():
 
 def exibir_blockchain():
     """Visualiza a cadeia de blocos e informações detalhadas"""
-    st.subheader("⛓️ Blockchain")
+    st.subheader("Blockchain")
     
     blockchain = st.session_state.blockchain
     
@@ -185,7 +177,7 @@ def exibir_blockchain():
             "ID do Bloco": str(bloco.id)[:8] + "...",
             "Minerador": nome_minerador,
             "Transação": f"{nome_remetente} → {nome_destinatario}",
-            "Conteúdo": bloco.transacao.conteudo[:30] + "..." if len(bloco.transacao.conteudo) > 30 else bloco.transacao.conteudo,
+            "Pontos": f"{bloco.transacao.pontos:.2f}" if i > 0 else "N/A",
             "Timestamp": bloco.timestamp.strftime("%H:%M:%S"),
             "Hash": bloco.hash.hex()[:16] + "..." if bloco.hash else "N/A"
         })
@@ -244,7 +236,7 @@ def exibir_blockchain():
             format_func=lambda i: f"Bloco {i} - {'Gênesis' if i == 0 else 'Transação'}"
         )
         
-    bloco = blockchain.cadeia[bloco_selecionado]
+    bloco: Bloco = blockchain.cadeia[bloco_selecionado]
 
     st.write("**Informações do Bloco:**")
     st.write(f"- **Índice:** {bloco_selecionado}")
@@ -257,7 +249,7 @@ def exibir_blockchain():
     st.write(f"- **ID da Transação:** {str(bloco.transacao.id)}")
     st.write(f"- **Remetente:** {bloco.transacao.remetente}")
     st.write(f"- **Destinatário:** {bloco.transacao.destinatario}")
-    st.write(f"- **Conteúdo:** {bloco.transacao.conteudo}")
+    st.write(f"- **Pontos:** {bloco.transacao.pontos:.2f}")
     
     # Encontrar nome do minerador
     nome_minerador = "Sistema"
@@ -269,181 +261,149 @@ def exibir_blockchain():
     st.write(f"**Minerador do bloco:** {nome_minerador}")
 
 def criar_e_minerar_transacao():
-    """Interface combinada para criar transação e minerar bloco"""
-    st.subheader("💰 Criar e Minerar Transação")
-    
-    # Seleção do usuário ativo
+    """
+    Interface para criar e minerar um bloco com uma transação.
+    """
+    st.subheader("Criar e Minerar Transação")
+
+    # Seleção de remetente e destinatário
     col1, col2 = st.columns([1, 1])
-    
+
     with col1:
-        st.write("**Usuário Ativo:**")
-        nomes_usuarios = [f"{u.nome}" for u in st.session_state.usuarios]
-        indice_atual = st.session_state.usuarios.index(st.session_state.usuario_atual)
+        st.write("**Remetente:**")
+        nomes = [f"{u.nome} ({u.pontos:.2f} pontos)" for u in st.session_state.usuarios]
         
-        novo_indice = st.selectbox(
-            "Selecionar usuário:",
+        indice = st.selectbox(
+            "Selecione o remetente:",
             range(len(st.session_state.usuarios)),
-            index=indice_atual,
-            format_func=lambda i: nomes_usuarios[i]
+            format_func=lambda i: nomes[i]
         )
-        
-        if novo_indice != indice_atual:
-            st.session_state.usuario_atual = st.session_state.usuarios[novo_indice]
-            st.rerun()
-    
+
+        remetente: Usuario = st.session_state.usuarios[indice]
+
     with col2:
         st.write("**Destinatário:**")
-        usuarios_disponiveis = [u for u in st.session_state.usuarios if u.id != st.session_state.usuario_atual.id]
+        # Filtrar usuários disponíveis (excluindo o remetente)
+        usuarios_disponiveis = [u for u in st.session_state.usuarios if u.id != remetente.id]
         
         if not usuarios_disponiveis:
-            st.warning("Nenhum outro usuário disponível para transação.")
+            st.warning("Nenhum destinatário disponível.")
             return
         
-        nomes_destinatarios = [f"{u.nome}" for u in usuarios_disponiveis]
+        nomes_destinatarios = [f"{u.nome} ({u.pontos:.2f} pontos)" for u in usuarios_disponiveis]
+        
         indice_destinatario = st.selectbox(
-            "Selecionar destinatário:",
+            "Selecione o destinatário:",
             range(len(usuarios_disponiveis)),
             format_func=lambda i: nomes_destinatarios[i]
         )
-        
-        destinatario = usuarios_disponiveis[indice_destinatario]
-    
-    # Conteúdo da transação
-    conteudo = st.text_area(
-        "Conteúdo da transação:",
-        placeholder="Digite o conteúdo da transação...",
-        height=100
+
+        destinatario: Usuario = usuarios_disponiveis[indice_destinatario]
+
+    # Valor da transação
+    st.write("**Valor da Transação:**")
+    pontos = st.number_input(
+        "Digite o valor em pontos:",
+        step=0.01,
+        format="%.2f"
     )
-    
-    # Container para o log de verificação
-    verification_container = st.container()
-    
-    # Botão para criar e minerar
-    if st.button("🚀 Criar e Minerar Transação", type="primary"):
-        if conteudo.strip():
-            try:
-                # Limpar log anterior
-                st.session_state.verificacao_log = []
+
+    botao_desabilitado = pontos <= 0
+    if st.button("Criar e minerar transação", type="primary", disabled=botao_desabilitado):
+        if pontos <= 0:
+            st.error("O valor da transação deve ser maior que zero.")
+            return
+        
+        try:
+            with st.container():
+                st.subheader("Processo de Mineração e Consenso")
                 
-                # Criar transação
-                transacao = st.session_state.usuario_atual.criar_transacao(
-                    destinatario.id,
-                    conteudo.strip()
-                )
+                # Informações da transação
+                st.info(f"**Transação:** {remetente.nome} → {destinatario.nome} | **Valor:** {pontos:.2f} pontos")
                 
-                st.success(f"✅ Transação criada: {st.session_state.usuario_atual.nome} → {destinatario.nome}")
+                # Container para logs em tempo real
+                log_container = st.empty()
+                logs = []
                 
-                # Simular processo de mineração com verificação
-                with verification_container:
-                    st.subheader("🔍 Processo de Verificação")
+                def log_callback(message):
+                    logs.append(message)
+                    log_text = "\n".join(logs)
+                    log_container.text_area("Log do Processo:", value=log_text, height=300, disabled=True)
+                
+                # Criar e minerar transação
+                transacao = remetente.criar_transacao(destinatario.id, pontos)
+                bloco = remetente.minerar_bloco(transacao, log_callback)
+
+                if bloco:
+                    st.success(f"Transação concluída com sucesso! Bloco ID: {str(bloco.id)[:8]}...")
                     
-                    # Placeholder para atualizações em tempo real
-                    status_placeholder = st.empty()
+                    # Mostrar sumário final
+                    st.subheader("Sumário Final")
+                    col1, col2 = st.columns(2)
                     
-                    # Simular verificação por cada usuário
-                    for i, usuario in enumerate(st.session_state.usuarios):
-                        time.sleep(0.5)  # Simular tempo de processamento
+                    with col1:
+                        st.metric("Status", "Sucesso")
+                        st.metric("Bloco ID", str(bloco.id)[:8])
+                    
+                    with col2:
+                        st.metric("Novo saldo - Remetente", f"{remetente.pontos:.2f}")
+                        st.metric("Novo saldo - Destinatário", f"{destinatario.pontos:.2f}")
                         
-                        # Verificar se o usuário aprova a transação
-                        aprovado = random.choice([True, True, True, False])  # 75% de aprovação
-                        
-                        if aprovado:
-                            status_placeholder.success(f"✅ {usuario.nome} aprovou a transação")
-                        else:
-                            status_placeholder.error(f"❌ {usuario.nome} rejeitou a transação")
-                        
-                        # Atualizar log
-                        st.session_state.verificacao_log.append({
-                            'usuario': usuario.nome,
-                            'aprovado': aprovado,
-                            'timestamp': datetime.now().strftime("%H:%M:%S")
-                        })
+                    st.session_state.blockchain.verificar()
+                else:
+                    st.error("Transação falhou - Bloco rejeitado pela rede")
                     
-                    # Verificar consenso (maioria simples)
-                    aprovacoes = sum(1 for entry in st.session_state.verificacao_log if entry['aprovado'])
-                    total_usuarios = len(st.session_state.usuarios)
-                    consenso_alcancado = aprovacoes > total_usuarios // 2
-                    
-                    time.sleep(1)
-                    
-                    if consenso_alcancado:
-                        # Minerar o bloco
-                        bloco_minerado = st.session_state.usuario_atual.minerar_bloco(transacao)
-                        
-                        if bloco_minerado:
-                            st.markdown(f"""
-                            <div class="success-box">
-                                ✅ <b>Bloco minerado e adicionado com sucesso!</b><br>
-                                <b>Consenso:</b> {aprovacoes}/{total_usuarios} usuários aprovaram<br>
-                                <b>Minerador:</b> {st.session_state.usuario_atual.nome}<br>
-                                <b>ID do Bloco:</b> {str(bloco_minerado.id)[:8]}...<br>
-                                <b>Hash:</b> {bloco_minerado.hash.hex()[:16]}...
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.error("❌ Erro na mineração do bloco")
-                    else:
-                        st.markdown(f"""
-                        <div class="error-box">
-                            ❌ <b>Transação rejeitada pela rede!</b><br>
-                            <b>Consenso:</b> {aprovacoes}/{total_usuarios} usuários aprovaram<br>
-                            Consenso mínimo não alcançado ({total_usuarios//2 + 1} aprovações necessárias)
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    # Mostrar log detalhado
-                    st.subheader("📊 Log de Verificação")
-                    for entry in st.session_state.verificacao_log:
-                        status = "✅ Aprovado" if entry['aprovado'] else "❌ Rejeitado"
-                        st.markdown(f"""
-                        <div class="verification-box">
-                            <b>[{entry['timestamp']}]</b> {entry['usuario']}: {status}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    # Atualizar a página após mineração
-                    time.sleep(2)
-                    st.rerun()
-                    
-            except Exception as e:
-                st.error(f"❌ Erro ao processar transação: {str(e)}")
-        else:
-            st.warning("Por favor, insira o conteúdo da transação.")
+                    # Mostrar sumário de falha
+                    st.subheader("Sumário da Falha")
+                    st.warning("A transação não foi aprovada pelo consenso da rede.")
+            
+            time.sleep(10)
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Erro ao processar transação: {str(e)}")
+            st.exception(e)
+            time.sleep(5)
+            st.rerun()
+
+def criar_bloco_falho():
+    """
+    Cria um bloco falho para testar a verificação da blockchain.
+    """
+    transacao = Transacao(
+        remetente=UUID(int=2),
+        destinatario=UUID(int=3),
+        pontos=5.0
+    )
+
+    bloco = Bloco(
+        transacao=transacao,
+        hash_anterior=UUID(int=0).bytes,
+        minerador=UUID(int=1)
+    )
+
+    st.session_state.blockchain.cadeia.append(bloco)
 
 def main():
-    """Função principal da aplicação"""
     iniciar_demo()
-    
-    # Cabeçalho principal
-    st.markdown('<h1 class="main-header">⛓️ Blockchain Educacional</h1>', unsafe_allow_html=True)
-    
-    # Navegação simplificada
-    st.sidebar.title("🧭 Navegação")
-    
+
+    st.markdown("# Blockchain Educacional")
+    st.sidebar.title("Navegação")
+
     paginas = {
-        "🌐 Grafo da Comunidade": "grafo",
-        "⛓️ Blockchain": "blockchain",
-        "💰 Criar Transação": "transacao"
+        "Grafo da Comunidade": "grafo",
+        "Blockchain": "blockchain",
+        "Criar e Minerar Transação": "transacao"
     }
+
+    pagina_selecionada = st.sidebar.radio("Selecione uma página:", list(paginas.keys()))
     
-    pagina_selecionada = st.sidebar.radio(
-        "Selecione uma página:",
-        list(paginas.keys())
-    )
-    
-    # Estatísticas na sidebar
+    # Mostrar saldos de todos os usuários
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**📊 Estatísticas:**")
-    st.sidebar.metric("Blocos na Cadeia", len(st.session_state.blockchain.cadeia))
-    st.sidebar.metric("Usuários na Rede", len(st.session_state.usuarios))
-    st.sidebar.metric("Conexões", sum(len(conexoes) for conexoes in st.session_state.blockchain.comunidade.values()) // 2)
-    
-    # Informações do usuário atual
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("**👤 Usuário Ativo:**")
-    st.sidebar.info(f"**{st.session_state.usuario_atual.nome}**")
-    
-    # Renderizar página selecionada
+    st.sidebar.markdown("**Saldos da Rede:**")
+    for usuario in st.session_state.usuarios:
+        st.sidebar.text(f"{usuario.nome}: {usuario.pontos:.2f}")
+
     pagina_id = paginas[pagina_selecionada]
     
     if pagina_id == "grafo":
@@ -455,23 +415,19 @@ def main():
     
     # Botão para verificar integridade
     st.sidebar.markdown("---")
-    if st.sidebar.button("🔍 Verificar Integridade"):
+    if st.sidebar.button("Verificar Integridade"):
         try:
             st.session_state.blockchain.verificar()
-            st.sidebar.success("✅ Blockchain íntegra!")
+            st.sidebar.success("Blockchain íntegra!")
         except Exception as e:
-            st.sidebar.error(f"❌ Erro: {str(e)}")
+            st.sidebar.error(f"Erro: {str(e)}")         
+
+    st.sidebar.markdown("---")
+    if st.sidebar.button("Destrutivo: Criar um bloco falho"):
+        criar_bloco_falho() 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
 
 
 

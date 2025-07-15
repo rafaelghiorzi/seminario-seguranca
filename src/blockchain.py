@@ -23,8 +23,11 @@ class Blockchain:
         self.comunidade: DefaultDict[UUID, Set[UUID]] = defaultdict(set)
         # Mapeamento das chaves públicas.
         self.chaves_publicas: Dict[UUID, RSAPublicKey] = {}
-        # [NOVO] Lista de usuários para o mecanismo de consenso.
+        # Lista de usuários para o mecanismo de consenso.
         self.usuarios_registrados: List['Usuario'] = []
+        # Mapeando usuários para seus ids
+        self.usuarios_por_id: Dict[UUID, 'Usuario'] = {}
+
 
         self._genesis_block()
 
@@ -36,7 +39,7 @@ class Blockchain:
         transacao = Transacao(
             remetente=genesis_id,
             destinatario=genesis_id,
-            conteudo="Bloco Gênesis"
+            pontos=0.0
         )
 
         bloco = Bloco(
@@ -54,6 +57,18 @@ class Blockchain:
         """Registra a chave pública de um usuário na blockchain."""
         self.chaves_publicas[usuario.id] = usuario.chave_publica
         self.usuarios_registrados.append(usuario)
+        self.usuarios_por_id[usuario.id] = usuario
+
+    def compare_pontos(self, usuario_id: UUID, pontos: float) -> bool:
+        """
+        Compara os pontos de um usuário com um valor fornecido.
+        Retorna True se o usuário tiver pontos suficientes, False caso contrário.
+        """
+        usuario = self.usuarios_por_id.get(usuario_id)
+        if not usuario:
+            raise ValueError("Usuário não encontrado na blockchain")
+        
+        return usuario.pontos >= pontos
 
     def get_chave(self, uuid: UUID) -> Optional[RSAPublicKey]:
         """
@@ -69,84 +84,75 @@ class Blockchain:
         """
         return self.cadeia[-1]
 
-    def adicionar_bloco(self, bloco: Bloco) -> bool:
+    def adicionar_bloco(self, bloco: Bloco, log_callback=None) -> bool:
         """
         Adiciona um novo bloco à blockchain apenas após
         validação completa e consenso entre os usuários.
         """
 
         # Essa é a lógica mais importante do projeto
-        # 1. Validação do bloco
-        chave_minerador = self.get_chave(bloco.minerador)
-        if not chave_minerador:
-            return False
 
-        if not bloco.validar(chave_minerador):
-            return False
-
-        # 2. validação da transação do bloco
-        remetente = bloco.transacao.remetente
-        chave_remetente = self.get_chave(remetente)
-        if not chave_remetente:
-            # Checa se o primeiro bloco é o gênesis
-            if remetente != UUID(int=0):
-                return False
-        elif not bloco.transacao.validar(chave_remetente):
-            return False
-
-        # 3. Verifica o hash anterior
-        hash_anterior = self.ultimo_bloco().hash
-        if bloco.hash_anterior != hash_anterior:
-            return False
-
-        # 4. Verifica se o bloco já existe
-        if bloco.id in [b.id for b in self.cadeia]:
-            return False
-
-        # 5. Checando consenso dos usuários
+        # Cada usuário deve consentir com a adição do bloco
         if len(self.usuarios_registrados) > 1:
             favoraveis = 0
             total_usuarios = len([u for u in self.usuarios_registrados if u.id != bloco.minerador])
+            votos = []
 
-            # Registrar início do consenso
-            import streamlit as st
-            import datetime
-            if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
-                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.log_consenso.append({
-                    'timestamp': timestamp,
-                    'nivel': 'INFO',
-                    'mensagem': f"Iniciando consenso para bloco {str(bloco.id)[:8]}... ({total_usuarios} validadores)"
-                })
+            # 1/3 dos usuários devem aprovar
+            necessario = total_usuarios // 3 + 1
+
+            if log_callback:
+                log_callback(f"🗳️ Iniciando processo de consenso com {total_usuarios} usuários votantes...")
+                log_callback(f"📊 Necessário: {necessario} votos favoráveis para aprovação")
 
             for usuario in self.usuarios_registrados:
                 if usuario.id != bloco.minerador:
-                    if usuario.consentir(bloco):
+                    if log_callback:
+                        log_callback(f"⏳ {usuario.nome} está analisando o bloco...")
+                    
+                    decisao, motivo = usuario.consentir(bloco)
+                    votos.append((usuario.nome, decisao, motivo))
+                    
+                    if decisao:
                         favoraveis += 1
+                        if log_callback:
+                            log_callback(f"✅ {usuario.nome}: APROVOU - {motivo}")
+                        
+                        # Parada brusca: se alcançou o necessário, pare imediatamente
+                        if favoraveis >= necessario:
+                            if log_callback:
+                                log_callback(f"Consenso de 1/3 alcançado: {favoraveis}/{total_usuarios} votos favoráveis!")
+                            print(f"Bloco {bloco.id} minerado por {bloco.minerador} com sucesso!")
+                            break
+                    else:
+                        if log_callback:
+                            log_callback(f"❌ {usuario.nome}: REJEITOU - {motivo}")
 
-            # Maioria simples
-            if favoraveis <= total_usuarios // 2:
-                mensagem = f"Bloco rejeitado: apenas {favoraveis}/{total_usuarios} votos favoráveis"
+            # Verificar se obteve consenso (1/3 dos usuários)
+            if favoraveis < necessario:
+                if log_callback:
+                    log_callback(f"🚫 CONSENSO FALHOU: {favoraveis}/{total_usuarios} votos favoráveis (necessário: {necessario})")
                 print(f"FALHA: Bloco minerado por {bloco.minerador} não obteve consenso.")
-                
-                if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
-                    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-                    st.session_state.log_consenso.append({
-                        'timestamp': timestamp,
-                        'nivel': 'ERROR',
-                        'mensagem': mensagem
-                    })
                 return False
+
+        # Atualizar saldos dos usuários envolvidos na transação (se não for genesis)
+        if bloco.transacao.remetente != UUID(int=0):
+            remetente_usuario = self.usuarios_por_id.get(bloco.transacao.remetente, None)
+            destinatario_usuario = self.usuarios_por_id.get(bloco.transacao.destinatario, None)
             
-            # Consenso alcançado
-            print(f"Bloco {bloco.id} minerado por {bloco.minerador} com sucesso!")
-            if hasattr(st, 'session_state') and 'log_consenso' in st.session_state:
-                timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-                st.session_state.log_consenso.append({
-                    'timestamp': timestamp,
-                    'nivel': 'SUCCESS',
-                    'mensagem': f"Consenso alcançado! {favoraveis}/{total_usuarios} votos favoráveis - Bloco adicionado"
-                })
+            if remetente_usuario and destinatario_usuario:
+                # Verificar novamente o saldo antes de atualizar
+                if remetente_usuario.pontos >= bloco.transacao.pontos:
+                    remetente_usuario.pontos -= bloco.transacao.pontos
+                    destinatario_usuario.pontos += bloco.transacao.pontos
+                    if log_callback:
+                        log_callback(f"💰 Saldos atualizados: {remetente_usuario.nome} (-{bloco.transacao.pontos:.2f}) → {destinatario_usuario.nome} (+{bloco.transacao.pontos:.2f})")
+                    print(f"Saldos atualizados: {remetente_usuario.nome} (-{bloco.transacao.pontos}) -> {destinatario_usuario.nome} (+{bloco.transacao.pontos})")
+                else:
+                    if log_callback:
+                        log_callback(f"❌ ERRO: Saldo insuficiente no momento da execução!")
+                    print(f"ERRO: Saldo insuficiente no momento da execução!")
+                    return False
 
         self.cadeia.append(bloco)
         self.tamanho += 1

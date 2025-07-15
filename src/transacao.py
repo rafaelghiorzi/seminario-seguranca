@@ -8,10 +8,10 @@ class Transacao:
     """
     Classe que representa uma transação
     """
-    def __init__(self, remetente: UUID, destinatario: UUID, conteudo: str) -> None:
+    def __init__(self, remetente: UUID, destinatario: UUID, pontos: float) -> None:
         self.remetente = remetente
         self.destinatario = destinatario
-        self.conteudo = conteudo
+        self.pontos = pontos
         self.timestamp = datetime.datetime.now()
         self.id = uuid4()
         self.assinatura = None
@@ -20,7 +20,7 @@ class Transacao:
         """
         Gera a mensagem que será assinada
         """
-        return f"{self.remetente}-{self.destinatario}-{self.conteudo}-{self.timestamp}".encode('utf-8')
+        return f"{self.remetente}-{self.destinatario}-{str(self.pontos)}-{self.timestamp}".encode('utf-8')
 
     def assinar(self, chave_privada: RSAPrivateKey) -> None:
         """
