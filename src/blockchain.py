@@ -8,6 +8,7 @@ from typing import List, Dict, Set, Optional, DefaultDict, TYPE_CHECKING
 if TYPE_CHECKING:
     from src.usuario import Usuario
 
+
 class Blockchain:
     """
     Classe principal que representa a blockchain.
@@ -24,10 +25,11 @@ class Blockchain:
         # Mapeamento das chaves públicas.
         self.chaves_publicas: Dict[UUID, RSAPublicKey] = {}
         # Lista de usuários para o mecanismo de consenso.
-        self.usuarios_registrados: List['Usuario'] = []
+        self.usuarios_registrados: List["Usuario"] = []
         # Mapeando usuários para seus ids
-        self.usuarios_por_id: Dict[UUID, 'Usuario'] = {}
-
+        self.usuarios_por_id: Dict[UUID, "Usuario"] = {}
+        # Lista completa de todos os usuários (ativos e banidos)
+        self.todos_usuarios: List["Usuario"] = []
 
         self._genesis_block()
 
@@ -36,16 +38,10 @@ class Blockchain:
         Cria o bloco gênesis
         """
         genesis_id = UUID(int=0)
-        transacao = Transacao(
-            remetente=genesis_id,
-            destinatario=genesis_id,
-            pontos=0.0
-        )
+        transacao = Transacao(remetente=genesis_id, destinatario=genesis_id, pontos=0.0)
 
         bloco = Bloco(
-            transacao=transacao,
-            hash_anterior=b"0" * 32,
-            minerador=genesis_id
+            transacao=transacao, hash_anterior=b"0" * 32, minerador=genesis_id
         )
 
         bloco.hash = bloco.calcular_hash()
@@ -53,11 +49,13 @@ class Blockchain:
         self.cadeia.append(bloco)
         self.tamanho = 1
 
-    def registrar_usuario(self, usuario: 'Usuario') -> None:
+    def registrar_usuario(self, usuario: "Usuario") -> None:
         """Registra a chave pública de um usuário na blockchain."""
         self.chaves_publicas[usuario.id] = usuario.chave_publica
         self.usuarios_registrados.append(usuario)
         self.usuarios_por_id[usuario.id] = usuario
+        if usuario not in self.todos_usuarios:
+            self.todos_usuarios.append(usuario)
 
     def banir(self, usuario_id: UUID) -> None:
         """
@@ -76,6 +74,19 @@ class Blockchain:
         else:
             print("Usuário não encontrado na blockchain.")
 
+    def desbanir(self, usuario_id: UUID) -> bool:
+        """
+        Desbane um usuário da blockchain, permitindo que ele volte a participar.
+        """
+        for usuario in self.todos_usuarios:
+            if usuario.id == usuario_id and usuario_id not in self.usuarios_por_id:
+                self.usuarios_registrados.append(usuario)
+                self.usuarios_por_id[usuario_id] = usuario
+                self.chaves_publicas[usuario_id] = usuario.chave_publica
+                print(f"Usuário {usuario.nome} foi desbanido com sucesso.")
+                return True
+        return False
+
     def compare_pontos(self, usuario_id: UUID, pontos: float) -> bool:
         """
         Compara os pontos de um usuário com um valor fornecido.
@@ -84,7 +95,7 @@ class Blockchain:
         usuario = self.usuarios_por_id.get(usuario_id)
         if not usuario:
             raise ValueError("Usuário não encontrado na blockchain")
-        
+
         return usuario.pontos >= pontos
 
     def get_chave(self, uuid: UUID) -> Optional[RSAPublicKey]:
@@ -112,34 +123,44 @@ class Blockchain:
         # Cada usuário deve consentir com a adição do bloco
         if len(self.usuarios_registrados) > 1:
             favoraveis = 0
-            total_usuarios = len([u for u in self.usuarios_registrados if u.id != bloco.minerador])
+            total_usuarios = len(
+                [u for u in self.usuarios_registrados if u.id != bloco.minerador]
+            )
             votos = []
 
             # 1/3 dos usuários devem aprovar
             necessario = total_usuarios // 3 + 1
 
             if log_callback:
-                log_callback(f"🗳️ Iniciando processo de consenso com {total_usuarios} usuários votantes...")
-                log_callback(f"📊 Necessário: {necessario} votos favoráveis para aprovação")
+                log_callback(
+                    f"🗳️ Iniciando processo de consenso com {total_usuarios} usuários votantes..."
+                )
+                log_callback(
+                    f"📊 Necessário: {necessario} votos favoráveis para aprovação"
+                )
 
             for usuario in self.usuarios_registrados:
                 if usuario.id != bloco.minerador:
                     if log_callback:
                         log_callback(f"⏳ {usuario.nome} está analisando o bloco...")
-                    
+
                     decisao, motivo = usuario.consentir(bloco)
                     votos.append((usuario.nome, decisao, motivo))
-                    
+
                     if decisao:
                         favoraveis += 1
                         if log_callback:
                             log_callback(f"✅ {usuario.nome}: APROVOU - {motivo}")
-                        
+
                         # Parada brusca: se alcançou o necessário, pare imediatamente
                         if favoraveis >= necessario:
                             if log_callback:
-                                log_callback(f"Consenso de 1/3 alcançado: {favoraveis}/{total_usuarios} votos favoráveis!")
-                            print(f"Bloco {bloco.id} minerado por {bloco.minerador} com sucesso!")
+                                log_callback(
+                                    f"Consenso de 1/3 alcançado: {favoraveis}/{total_usuarios} votos favoráveis!"
+                                )
+                            print(
+                                f"Bloco {bloco.id} minerado por {bloco.minerador} com sucesso!"
+                            )
                             break
                     else:
                         if log_callback:
@@ -148,26 +169,40 @@ class Blockchain:
             # Verificar se obteve consenso (1/3 dos usuários)
             if favoraveis < necessario:
                 if log_callback:
-                    log_callback(f"🚫 CONSENSO FALHOU: {favoraveis}/{total_usuarios} votos favoráveis (necessário: {necessario})")
-                print(f"FALHA: Bloco minerado por {bloco.minerador} não obteve consenso.")
+                    log_callback(
+                        f"🚫 CONSENSO FALHOU: {favoraveis}/{total_usuarios} votos favoráveis (necessário: {necessario})"
+                    )
+                print(
+                    f"FALHA: Bloco minerado por {bloco.minerador} não obteve consenso."
+                )
                 return False
 
         # Atualizar saldos dos usuários envolvidos na transação (se não for genesis)
         if bloco.transacao.remetente != UUID(int=0):
-            remetente_usuario = self.usuarios_por_id.get(bloco.transacao.remetente, None)
-            destinatario_usuario = self.usuarios_por_id.get(bloco.transacao.destinatario, None)
-            
+            remetente_usuario = self.usuarios_por_id.get(
+                bloco.transacao.remetente, None
+            )
+            destinatario_usuario = self.usuarios_por_id.get(
+                bloco.transacao.destinatario, None
+            )
+
             if remetente_usuario and destinatario_usuario:
                 # Verificar novamente o saldo antes de atualizar
                 if remetente_usuario.pontos >= bloco.transacao.pontos:
                     remetente_usuario.pontos -= bloco.transacao.pontos
                     destinatario_usuario.pontos += bloco.transacao.pontos
                     if log_callback:
-                        log_callback(f"💰 Saldos atualizados: {remetente_usuario.nome} (-{bloco.transacao.pontos:.2f}) → {destinatario_usuario.nome} (+{bloco.transacao.pontos:.2f})")
-                    print(f"Saldos atualizados: {remetente_usuario.nome} (-{bloco.transacao.pontos}) -> {destinatario_usuario.nome} (+{bloco.transacao.pontos})")
+                        log_callback(
+                            f"💰 Saldos atualizados: {remetente_usuario.nome} (-{bloco.transacao.pontos:.2f}) → {destinatario_usuario.nome} (+{bloco.transacao.pontos:.2f})"
+                        )
+                    print(
+                        f"Saldos atualizados: {remetente_usuario.nome} (-{bloco.transacao.pontos}) -> {destinatario_usuario.nome} (+{bloco.transacao.pontos})"
+                    )
                 else:
                     if log_callback:
-                        log_callback(f"❌ ERRO: Saldo insuficiente no momento da execução!")
+                        log_callback(
+                            f"❌ ERRO: Saldo insuficiente no momento da execução!"
+                        )
                     print(f"ERRO: Saldo insuficiente no momento da execução!")
                     return False
 
@@ -195,6 +230,8 @@ class Blockchain:
 
             # Verifica o hash anterior
             if bloco_atual.hash_anterior != bloco_anterior.hash:
-                raise ValueError(f"Bloco {bloco_atual.id} inválido: hash anterior incorreto")
+                raise ValueError(
+                    f"Bloco {bloco_atual.id} inválido: hash anterior incorreto"
+                )
 
         print("Blockchain verificada com sucesso! Todos os blocos são válidos.")
