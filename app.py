@@ -26,7 +26,7 @@ def iniciar_demo():
         # Criar usuários demonstrativos
         fake = faker.Faker('pt_BR')
         st.session_state.usuarios = []
-        for _ in range(35):
+        for _ in range(15):
             nome = fake.name()
             usuario = Usuario(nome, st.session_state.blockchain, random.uniform(10, 100))
             st.session_state.usuarios.append(usuario)
