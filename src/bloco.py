@@ -22,7 +22,7 @@ class Bloco:
 
     def calcular_hash(self) -> bytes:
         digest = hashlib.sha256()
-        digest.update(str(self.transacao.id).encode('utf-8'))
+        digest.update(str(self.transacao.hash).encode('utf-8'))
         digest.update(self.hash_anterior)
         digest.update(str(self.timestamp).encode('utf-8'))
         digest.update(str(self.minerador).encode('utf-8'))

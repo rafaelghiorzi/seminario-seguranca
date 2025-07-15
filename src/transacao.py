@@ -1,3 +1,4 @@
+import hashlib
 import datetime
 from uuid import uuid4, UUID
 from cryptography.hazmat.primitives import hashes
@@ -14,21 +15,26 @@ class Transacao:
         self.pontos = pontos
         self.timestamp = datetime.datetime.now()
         self.id = uuid4()
-        self.assinatura = None
 
-    def _gerar_mensagem(self) -> bytes:
-        """
-        Gera a mensagem que será assinada
-        """
-        return f"{self.remetente}-{self.destinatario}-{str(self.pontos)}-{self.timestamp}".encode('utf-8')
+        self.assinatura = None
+        self.hash = None
+
+    def calcular_hash(self) -> bytes:
+        digest = hashlib.sha256()
+        digest.update(self.remetente.bytes)
+        digest.update(self.destinatario.bytes)
+        digest.update(str(self.pontos).encode('utf-8'))
+        digest.update(str(self.timestamp).encode('utf-8'))
+        digest.update(str(self.id).encode('utf-8'))
+        return digest.digest()
 
     def assinar(self, chave_privada: RSAPrivateKey) -> None:
         """
-        Assina a transação com a chave privada do remetente
+        Assina o hash da transação com a chave privada do remetente
         """
-        mensagem = self._gerar_mensagem()
+        hash_mensagem = self.calcular_hash()
         self.assinatura = chave_privada.sign(
-            mensagem,
+            hash_mensagem,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
@@ -40,13 +46,17 @@ class Transacao:
         """
         Verifica a assinatura da transação
         """
-        mensagem = self._gerar_mensagem()
         if not self.assinatura:
             return False
+        if not self.hash or not self.assinatura:
+            return False
+        if self.hash != self.calcular_hash():
+            return False
+
         try:
             chave_publica.verify(
                 self.assinatura,
-                mensagem,
+                self.hash,
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
                     salt_length=padding.PSS.MAX_LENGTH
