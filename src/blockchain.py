@@ -59,6 +59,23 @@ class Blockchain:
         self.usuarios_registrados.append(usuario)
         self.usuarios_por_id[usuario.id] = usuario
 
+    def banir(self, usuario_id: UUID) -> None:
+        """
+        Banir um usuário da blockchain.
+        Remove o usuário da lista de usuários registrados e limpa sua chave pública.
+        """
+        if usuario_id in self.usuarios_por_id:
+            usuario = self.usuarios_por_id[usuario_id]
+            if usuario in self.usuarios_registrados:
+                self.usuarios_registrados.remove(usuario)
+                del self.chaves_publicas[usuario_id]
+                del self.usuarios_por_id[usuario_id]
+                print(f"Usuário {usuario.nome} banido com sucesso.")
+            else:
+                print(f"Usuário {usuario.nome} já está banido.")
+        else:
+            print("Usuário não encontrado na blockchain.")
+
     def compare_pontos(self, usuario_id: UUID, pontos: float) -> bool:
         """
         Compara os pontos de um usuário com um valor fornecido.

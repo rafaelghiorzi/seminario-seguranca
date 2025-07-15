@@ -33,109 +33,6 @@ def iniciar_demo():
         
         st.session_state.transacoes_pendentes = []
 
-def exibir_grafo():
-    """Visualiza o grafo de relacionamento da comunidade"""
-    st.subheader("Grafo da Comunidade")
-    blockchain = st.session_state.blockchain
-
-    if not blockchain.comunidade:
-        st.info("Nenhuma transação registrada. O grafo está vazio.")
-        return
-
-    G = nx.Graph()
-    
-    # Adicionar nós (usuários)
-    for usuario in st.session_state.usuarios:
-        G.add_node(str(usuario.id), label=usuario.nome, color="lightblue")
-    
-    # Adicionar arestas (transações)
-    for remetente, destinatarios in blockchain.comunidade.items():
-        for destinatario in destinatarios:
-            if remetente != UUID(int=0):  # Ignorar o bloco genesis
-                G.add_edge(str(remetente), str(destinatario))
-
-    if len(G.edges()) == 0:
-        st.info("Nenhuma conexão entre usuários registradas.")
-        return
-    
-    # Calcular posições dos nós
-    pos = nx.spring_layout(G, k=3, iterations=50)
-
-    # Criar traces para Plotly
-    edge_x = []
-    edge_y = []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-    
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=2, color='#888'),
-        hoverinfo='none',
-        mode='lines'
-    )
-    
-    node_x = []
-    node_y = []
-    node_text = []
-    node_info = []
-    
-    for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        
-        # Encontrar nome do usuário
-        nome = "Desconhecido"
-        for usuario in st.session_state.usuarios:
-            if str(usuario.id) == node:
-                nome = usuario.nome
-                break
-        
-        node_text.append(nome)
-        node_info.append(f"Usuário: {nome}<br>ID: {node[:8]}...")
-    
-    node_trace = go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        text=node_text,
-        textposition="middle center",
-        hovertext=node_info,
-        hoverinfo='text',
-        marker=dict(
-            size=50,
-            color='lightblue',
-            line=dict(width=2, color='darkblue')
-        )
-    )
-    
-    fig = go.Figure(
-        data=[edge_trace, node_trace],
-        layout=go.Layout(
-            title=dict(
-                text="Relacionamentos entre Usuários",
-                font=dict(size=16)
-            ),
-            showlegend=False,
-            hovermode='closest',
-            margin=dict(b=20,l=5,r=5,t=40),
-            annotations=[dict(
-                text="Conexões baseadas em transações realizadas",
-                showarrow=False,
-                xref="paper", yref="paper",
-                x=0.005, y=-0.002,
-                xanchor='left', yanchor='bottom',
-                font=dict(color="gray", size=12)
-            )],
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-        )
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-
 def exibir_blockchain():
     """Visualiza a cadeia de blocos e informações detalhadas"""
     st.subheader("Blockchain")
@@ -186,7 +83,7 @@ def exibir_blockchain():
     st.dataframe(df, use_container_width=True, hide_index=True)
     
     # Visualização gráfica da cadeia
-    st.subheader("📊 Visualização da Cadeia")
+    st.subheader("Visualização da Cadeia")
     
     fig = go.Figure()
     
@@ -227,7 +124,7 @@ def exibir_blockchain():
     st.plotly_chart(fig, use_container_width=True)
 
     # Seção de informações detalhadas dos blocos
-    st.subheader("📋 Informações Detalhadas dos Blocos")
+    st.subheader("Informações Detalhadas dos Blocos")
     
     if len(blockchain.cadeia) > 1:
         bloco_selecionado = st.selectbox(
@@ -328,7 +225,7 @@ def criar_e_minerar_transacao():
                 def log_callback(message):
                     logs.append(message)
                     log_text = "\n".join(logs)
-                    log_container.text_area("Log do Processo:", value=log_text, height=300, disabled=True)
+                    log_container.text_area("Log do Processo:", value=log_text, height=500, disabled=True)
                 
                 # Criar e minerar transação
                 transacao = remetente.criar_transacao(destinatario.id, pontos)
@@ -384,6 +281,209 @@ def criar_bloco_falho():
 
     st.session_state.blockchain.cadeia.append(bloco)
 
+def exibir_comunidade():
+    """Visualiza o grafo de relacionamento da comunidade e informações dos usuários"""
+    st.subheader("Comunidade da Rede")
+    
+    blockchain = st.session_state.blockchain
+    
+    # Seção do grafo
+    st.subheader("Grafo da Comunidade")
+    
+    if not blockchain.comunidade:
+        st.info("Nenhuma transação registrada. O grafo está vazio.")
+    else:
+        G = nx.Graph()
+        
+        # Adicionar nós (usuários) com cores baseadas no status
+        for usuario in st.session_state.usuarios:
+            status = "ativo" if usuario.id in blockchain.usuarios_por_id else "banido"
+            cor = "#06420d" if status == "ativo" else "red"
+            G.add_node(str(usuario.id), label=usuario.nome, color=cor, status=status)
+        
+        # Adicionar arestas (transações)
+        for remetente, destinatarios in blockchain.comunidade.items():
+            for destinatario in destinatarios:
+                if remetente != UUID(int=0):  # Ignorar o bloco genesis
+                    G.add_edge(str(remetente), str(destinatario))
+
+        if len(G.edges()) == 0:
+            st.info("Nenhuma conexão entre usuários registradas.")
+        else:
+            # Calcular posições dos nós
+            pos = nx.spring_layout(G, k=3, iterations=50)
+
+            # Criar traces para Plotly
+            edge_x = []
+            edge_y = []
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+            
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                line=dict(width=2, color='#888'),
+                hoverinfo='none',
+                mode='lines'
+            )
+            
+            # Separar nós ativos e banidos
+            node_x_ativo = []
+            node_y_ativo = []
+            node_text_ativo = []
+            node_info_ativo = []
+            
+            node_x_banido = []
+            node_y_banido = []
+            node_text_banido = []
+            node_info_banido = []
+            
+            for node in G.nodes():
+                x, y = pos[node]
+                
+                # Encontrar nome e status do usuário
+                nome = "Desconhecido"
+                status = "ativo"
+                for usuario in st.session_state.usuarios:
+                    if str(usuario.id) == node:
+                        nome = usuario.nome
+                        status = "ativo" if usuario.id in blockchain.usuarios_por_id else "banido"
+                        break
+                
+                node_text = nome
+                node_info = f"Usuário: {nome}<br>ID: {node[:8]}...<br>Status: {status.title()}"
+                
+                if status == "ativo":
+                    node_x_ativo.append(x)
+                    node_y_ativo.append(y)
+                    node_text_ativo.append(node_text)
+                    node_info_ativo.append(node_info)
+                else:
+                    node_x_banido.append(x)
+                    node_y_banido.append(y)
+                    node_text_banido.append(node_text)
+                    node_info_banido.append(node_info)
+            
+            # Trace para usuários ativos
+            traces = [edge_trace]
+            
+            if node_x_ativo:
+                node_trace_ativo = go.Scatter(
+                    x=node_x_ativo, y=node_y_ativo,
+                    mode='markers+text',
+                    text=node_text_ativo,
+                    textposition="middle center",
+                    hovertext=node_info_ativo,
+                    hoverinfo='text',
+                    name='Usuários Ativos',
+                    marker=dict(
+                        size=50,
+                        color='lightgreen',
+                        line=dict(width=2, color='darkgreen')
+                    )
+                )
+                traces.append(node_trace_ativo)
+            
+            # Trace para usuários banidos
+            if node_x_banido:
+                node_trace_banido = go.Scatter(
+                    x=node_x_banido, y=node_y_banido,
+                    mode='markers+text',
+                    text=node_text_banido,
+                    textposition="middle center",
+                    hovertext=node_info_banido,
+                    hoverinfo='text',
+                    name='Usuários Banidos',
+                    marker=dict(
+                        size=50,
+                        color='lightcoral',
+                        line=dict(width=2, color='darkred')
+                    )
+                )
+                traces.append(node_trace_banido)
+            
+            fig = go.Figure(
+                data=traces,
+                layout=go.Layout(
+                    title=dict(
+                        text="Relacionamentos entre Usuários",
+                        font=dict(size=16)
+                    ),
+                    showlegend=True,
+                    hovermode='closest',
+                    margin=dict(b=20,l=5,r=5,t=40),
+                    annotations=[dict(
+                        text="🟢 Ativo | 🔴 Banido | Conexões baseadas em transações",
+                        showarrow=False,
+                        xref="paper", yref="paper",
+                        x=0.005, y=-0.002,
+                        xanchor='left', yanchor='bottom',
+                        font=dict(color="gray", size=12)
+                    )],
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                )
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Seção dos usuários
+    st.subheader("Usuários da Rede")
+    
+    if not st.session_state.usuarios:
+        st.info("Nenhum usuário registrado na rede.")
+        return
+    
+    # Criar DataFrame com informações dos usuários
+    dados_usuarios = []
+    for usuario in st.session_state.usuarios:
+        status = "Ativo" if usuario.id in blockchain.usuarios_por_id else "Banido"
+        dados_usuarios.append({
+            "Nome": usuario.nome,
+            "ID": str(usuario.id)[:8] + "...",
+            "Saldo": f"{usuario.pontos:.2f}",
+            "Status": status
+        })
+    
+    df = pd.DataFrame(dados_usuarios)
+    
+    # Aplicar estilo condicional baseado no status
+    def highlight_status(row):
+        if row['Status'] == 'Ativo':
+            return ['background-color: #11181a'] * len(row)
+        else:
+            return ['background-color: #290707'] * len(row)
+    
+    styled_df = df.style.apply(highlight_status, axis=1)
+    st.dataframe(styled_df, use_container_width=True, hide_index=True)
+    
+    # Seção para gerenciar usuários
+    st.subheader("Gerenciar Usuários")
+    
+    # Filtrar usuários ativos
+    usuarios_ativos = [u for u in st.session_state.usuarios if u.id in blockchain.usuarios_por_id]
+    
+    if usuarios_ativos:
+        st.write("**Banir Usuário:**")
+        nomes_ativos = [f"{u.nome} ({u.pontos:.2f} pontos)" for u in usuarios_ativos]
+        
+        indice_usuario = st.selectbox(
+            "Selecione um usuário para banir:",
+            range(len(usuarios_ativos)),
+            format_func=lambda i: nomes_ativos[i]
+        )
+        
+        usuario_selecionado = usuarios_ativos[indice_usuario]
+        
+        if st.button("Banir Usuário", type="secondary"):
+            blockchain.banir(usuario_selecionado.id)
+            st.success(f"Usuário {usuario_selecionado.nome} foi banido da rede.")
+            st.rerun()
+    else:
+        st.info("Nenhum usuário ativo para banir.")
+
 def main():
     iniciar_demo()
 
@@ -391,23 +491,29 @@ def main():
     st.sidebar.title("Navegação")
 
     paginas = {
-        "Grafo da Comunidade": "grafo",
+        "Comunidade": "comunidade",
         "Blockchain": "blockchain",
         "Criar e Minerar Transação": "transacao"
     }
 
     pagina_selecionada = st.sidebar.radio("Selecione uma página:", list(paginas.keys()))
     
-    # Mostrar saldos de todos os usuários
+    # Mostrar resumo
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**Saldos da Rede:**")
-    for usuario in st.session_state.usuarios:
-        st.sidebar.text(f"{usuario.nome}: {usuario.pontos:.2f}")
+    st.sidebar.markdown("**Resumo da Rede:**")
+    usuarios_ativos = [u for u in st.session_state.usuarios if u.id in st.session_state.blockchain.usuarios_por_id]
+    usuarios_banidos = len(st.session_state.usuarios) - len(usuarios_ativos)
+    
+    st.sidebar.metric("Usuários Ativos", len(usuarios_ativos))
+    st.sidebar.metric("Usuários Banidos", usuarios_banidos)
+    
+    total_pontos = sum(u.pontos for u in usuarios_ativos)
+    st.sidebar.metric("Total de Pontos", f"{total_pontos:.2f}")
 
     pagina_id = paginas[pagina_selecionada]
     
-    if pagina_id == "grafo":
-        exibir_grafo()
+    if pagina_id == "comunidade":
+        exibir_comunidade()
     elif pagina_id == "blockchain":
         exibir_blockchain()
     elif pagina_id == "transacao":
@@ -422,9 +528,9 @@ def main():
         except Exception as e:
             st.sidebar.error(f"Erro: {str(e)}")         
 
-    st.sidebar.markdown("---")
     if st.sidebar.button("Destrutivo: Criar um bloco falho"):
         criar_bloco_falho() 
+
 
 if __name__ == "__main__":
     main()

@@ -1,120 +1,189 @@
 # Blockchain Privado com Validação de Transações via Assinatura
+
 ### Segurança Computacional - 2025.1 - Turma 02 - Universidade de Brasília
+
 ### Integrantes:
+
 #### Lucas Gabriel de Oliveira Lima (https://github.com/lucasdbr05)
+
 #### Pedro Lucas Pereira Neris (https://github.com/pedro-neris)
+
 #### Rafael Dias Ghiorzi (https://github.com/rafaelghiorzi)
 
-Este projeto implementa um **sistema de blockchain privado** com foco em criação e validação de transações através de assinaturas digitais e com um fluxo de blocos, com mecanismo de consenso para autorizar ou não a entrada de um bloco na cadeia. Este trabalho foi desenvolvido para o seminário da disciplina de Segurança Computacional da Universidade de Brasília no semestre 2025.1. 
+Este projeto implementa um **sistema de blockchain privado** com foco em criação e validação de transações através de assinaturas digitais RSA e mecanismo de consenso distribuído para autorizar a entrada de blocos na cadeia. Este trabalho foi desenvolvido para o seminário da disciplina de Segurança Computacional da Universidade de Brasília no semestre 2025.1.
 
 ## 📋 Sobre o Projeto
 
-Este projeto implementa uma blockchain simplificada com foco educacional, incluindo:
+Este projeto implementa uma blockchain simplificada com foco educacional, demonstrando:
 
-- **Sistema de usuários** com geração de chaves públicas/privadas RSA
-- **Transações assinadas digitalmente** para garantir autenticidade
-- **Mineração de blocos** com validação criptográfica
-- **Mecanismo de consenso** distribuído entre usuários
+- **Sistema de usuários** com geração automática de chaves RSA (2048 bits)
+- **Transações assinadas digitalmente** usando RSA-PSS com SHA-256
+- **Mineração de blocos** com validação criptográfica completa
+- **Mecanismo de consenso** baseado em aprovação de 1/3 dos usuários
 - **Interface web interativa** construída com Streamlit
-- **Visualizações gráficas** da rede e blockchain
+- **Visualizações gráficas** da rede de usuários e estrutura da blockchain
+- **Sistema de saldos** com verificação automática de fundos suficientes
 
 ## 🏗️ Arquitetura
 
-O projeto é composto pelos seguintes módulos principais:
+O projeto é organizado nos seguintes módulos:
 
-### Core da Blockchain
-- **`blockchain.py`**: Classe principal que gerencia a cadeia de blocos
-- **`bloco.py`**: Implementação individual de blocos com hash e assinatura
-- **`transacao.py`**: Sistema de transações com assinatura digital RSA
-- **`usuario.py`**: Gerenciamento de usuários e chaves criptográficas
+### Core da Blockchain (`src/`)
 
-### Interface
-- **`main.py`**: Interface web com Streamlit e visualizações interativas
+- **`blockchain.py`**: Classe principal que gerencia a cadeia, consenso e usuários
+- **`bloco.py`**: Implementação de blocos com hash SHA-256 e assinatura RSA
+- **`transacao.py`**: Sistema de transações com assinatura digital RSA-PSS
+- **`usuario.py`**: Gerenciamento de usuários, chaves criptográficas e mineração
 
-## 🔧 Funcionalidades
+### Interface Web
 
-### 🏠 Dashboard
-- Visão geral da blockchain (número de blocos, usuários, transações)
-- Estatísticas em tempo real
+- **`app.py`**: Interface completa com Streamlit, visualizações e simulações
+
+## 🔧 Funcionalidades Implementadas
+
+### 🏠 Dashboard Principal
+
+- Visualização da blockchain em tempo real
+- Estatísticas dos usuários e seus saldos
 - Status da integridade da cadeia
 
-### 👥 Gerenciamento de Usuários
-- Criação de novos usuários com geração automática de chaves RSA
-- Visualização de usuários registrados
-- Sistema de amizades/conexões entre usuários
+### 👥 Sistema de Usuários
+
+- Criação automática de 15 usuários com nomes brasileiros (Faker)
+- Geração de chaves RSA (2048 bits) para cada usuário
+- Saldos iniciais aleatórios entre 10 e 100 pontos
+- Registro automático na blockchain
 
 ### 💰 Sistema de Transações
-- Criação de transações entre usuários
-- Assinatura digital automática
-- Validação criptográfica
 
-### ⛏️ Mineração
-- Mineração de blocos com validação completa
-- Mecanismo de consenso distribuído
-- Verificação de integridade da cadeia
+- Criação de transações entre usuários com seleção intuitiva
+- Assinatura automática com chave privada do remetente
+- Validação de saldos antes da execução
+- Verificação criptográfica completa das assinaturas
 
-### 📊 Visualizações
-- **Grafo da Comunidade**: Rede de conexões entre usuários
-- **Visualização da Blockchain**: Estrutura visual da cadeia de blocos
-- **Gráficos interativos** com Plotly
+### ⛏️ Mineração e Consenso
+
+- **Mineração simplificada**: Usuário cria transação e minera o bloco
+- **Consenso distribuído**: Aprovação de 1/3 dos usuários da rede
+- **Validação rigorosa**: Verificação de hash, assinatura e saldos
+- **Parada otimizada**: Consenso para assim que 1/3 aprova
+- **Atualização automática**: Saldos atualizados após consenso
+
+### 📊 Visualizações Interativas
+
+- **Grafo da Comunidade**: Rede de conexões baseada em transações (NetworkX + Plotly)
+- **Visualização da Blockchain**: Estrutura linear dos blocos
+- **Detalhes dos Blocos**: Informações completas de cada bloco
+- **Logs em Tempo Real**: Acompanhamento do processo de consenso
+
+### 🔍 Verificação de Integridade
+
+- Verificação completa da cadeia de blocos
+- Validação de hashes sequenciais
+- Detecção de blocos corrompidos ou alterados
 
 ## 🚀 Setup e Execução
 
 ### Pré-requisitos
+
 - Python 3.8 ou superior
 - pip (gerenciador de pacotes Python)
 
 ### 1. Instale as dependências
+
 ```bash
-pip install -r requirements.txt
+pip install streamlit pandas plotly networkx faker cryptography
 ```
 
 ### 2. Execute a aplicação
+
 ```bash
-streamlit run main.py
+streamlit run app.py
 ```
 
-### 4. Acesse a aplicação
+### 3. Acesse a aplicação
+
 A aplicação será executada em: **http://localhost:8501**
 
+## 🎯 Conceitos Criptográficos Demonstrados
 
-## 🎯 Conceitos Demonstrados
+### Assinatura Digital RSA
 
-### Criptografia
-- **Chaves RSA**: Geração de pares de chaves pública/privada
-- **Assinatura Digital**: Autenticação de transações e blocos
-- **Hash SHA-256**: Integridade e ligação entre blocos
+- **Chaves RSA-2048**: Geração de pares de chaves pública/privada
+- **RSA-PSS**: Esquema de assinatura probabilística com MGF1
+- **SHA-256**: Função de hash para integridade das mensagens
+- **Verificação**: Validação criptográfica de transações e blocos
 
-### Blockchain
-- **Cadeia de Blocos**: Estrutura sequencial imutável
-- **Bloco Gênesis**: Primeiro bloco da cadeia
-- **Validação**: Verificação criptográfica de blocos e transações
+### Estrutura Blockchain
+
+- **Bloco Gênesis**: Primeiro bloco com hash anterior fixo
+- **Encadeamento**: Cada bloco referencia o hash do anterior
+- **Integridade**: Alterações quebram a cadeia de hashes
+- **Timestamps**: Ordenação temporal dos blocos
 
 ### Consenso Distribuído
-- **Validação por Pares**: Múltiplos usuários validam transações
-- **Integridade da Cadeia**: Verificação completa da blockchain
-- **Prevenção de Fraudes**: Sistema resistente a alterações maliciosas
 
-Em uma blockchain real, as transações realizadas ne rede são
-compartilhadas e passam para uma _mempool_ de transações não
-confirmadas. Mineradores juntam essas transações em um bloco
-candidato e realizam um proof of work (um quebra-cabeça) que
-demonstra o esforço e compartilham esse bloco para a rede, e
-os usuários validam as informações contidas nesse bloco. Se
-um consenso é atingido, o bloco é adicionado à blockchain e o
-minerador ganha uma taxa de cada transação como recompensa por
-ajudar na organização da blockchain.  
-No nosso caso, não realizamos proof of work e mempool, todas as
-transações são assinadas e adicionada em um bloco contendo uma
-única transação, e o bloco é minerado, sem proof of work, pelo
-próprio criador da transação única.
+- **Validação por Pares**: Usuários validam blocos de outros
+- **Aprovação por Maioria**: Necessário 1/3 dos usuários para aprovar
+- **Verificação Múltipla**: Hash, assinatura, saldo e estrutura
+- **Tolerância a Falhas**: Sistema resiste a usuários maliciosos
 
-## 🔍 Como Usar
+## 🔍 Como Usar a Aplicação
 
-1. **Inicie a aplicação** executando `streamlit run main.py`
-2. **Crie usuários** na seção "Gerenciar Usuários"
-3. **Estabeleça conexões** entre usuários para formar uma rede
-4. **Crie transações** entre usuários conectados
-5. **Mineralize blocos** para adicionar transações à blockchain
-6. **Visualize** a rede e a blockchain nas abas correspondentes
-7. **Verifique a integridade** usando o botão na sidebar
+1. **Execute** a aplicação com `streamlit run app.py`
+2. **Navegue** entre as três páginas principais:
+
+   - **Grafo da Comunidade**: Visualize conexões entre usuários
+   - **Blockchain**: Explore a estrutura da cadeia de blocos
+   - **Criar e Minerar Transação**: Simule transações reais
+
+3. **Crie transações**:
+
+   - Selecione remetente e destinatário
+   - Defina o valor em pontos
+   - Acompanhe o processo de consenso em tempo real
+
+4. **Monitore** os saldos dos usuários na barra lateral
+5. **Verifique** a integridade da blockchain quando necessário
+
+## 🔬 Características Técnicas
+
+### Diferenças de uma Blockchain Real
+
+- **Sem Proof of Work**: Não há quebra-cabeça computacional
+- **Sem Mempool**: Transações são processadas individualmente
+- **Mineração Simplificada**: Criador da transação minera o bloco
+- **Consenso Adaptado**: Aprovação de 1/3 em vez de maioria de poder computacional
+
+### Validações Implementadas
+
+- **Verificação de saldo** antes da transação
+- **Validação criptográfica** de assinaturas
+- **Verificação de integridade** da cadeia
+- **Consenso distribuído** para aprovação
+- **Detecção de alterações** maliciosas
+
+## 🛠️ Estrutura de Arquivos
+
+```
+seminario-seguranca/
+├── src/
+│   ├── blockchain.py      # Gerenciamento da cadeia e consenso
+│   ├── bloco.py          # Implementação de blocos
+│   ├── transacao.py      # Sistema de transações
+│   └── usuario.py        # Gerenciamento de usuários
+├── app.py                # Interface web principal
+└── README.md            # Este arquivo
+```
+
+## 🎓 Valor Educacional
+
+Este projeto demonstra de forma prática e visual:
+
+- **Fundamentos da criptografia** aplicada em blockchains
+- **Mecanismos de consenso** distribuído
+- **Validação de transações** através de assinaturas digitais
+- **Estrutura de dados** de uma blockchain
+- **Verificação de integridade** em sistemas distribuídos
+
+Ideal para estudantes de segurança computacional compreenderem os conceitos fundamentais de blockchains e criptografia aplicada.
