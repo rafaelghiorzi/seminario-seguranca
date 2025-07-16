@@ -13,6 +13,7 @@ class Usuario:
     """
     Classe que representa um usário na blockchain.
     """
+
     def __init__(self, nome: str, blockchain: Blockchain, pontos: float) -> None:
         self.id = uuid4()
         self.nome = nome
@@ -20,8 +21,7 @@ class Usuario:
         self.pontos = pontos
 
         self.chave_privada: RSAPrivateKey = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048
+            public_exponent=65537, key_size=2048
         )
         self.chave_publica: RSAPublicKey = self.chave_privada.public_key()
 
@@ -35,15 +35,13 @@ class Usuario:
             raise ValueError("O destinatário deve ser um UUID válido")
         if not pontos or not isinstance(pontos, float):
             raise ValueError("O conteúdo da transação deve ser um número não vazio")
-        
+
         transacao = Transacao(
-            remetente=self.id,
-            destinatario=destinatario_id,
-            pontos=pontos
+            remetente=self.id, destinatario=destinatario_id, pontos=pontos
         )
         transacao.assinar(self.chave_privada)
         return transacao
-    
+
     def minerar_bloco(self, transacao: Transacao, log_callback=None) -> Optional[Bloco]:
         """
         Cria um novo bloco, o assina e o propõe para a blockchain.
@@ -56,9 +54,7 @@ class Usuario:
             log_callback(f"{self.nome} está minerando um novo bloco...")
 
         bloco = Bloco(
-            transacao=transacao,
-            hash_anterior=hash_anterior,
-            minerador=self.id
+            transacao=transacao, hash_anterior=hash_anterior, minerador=self.id
         )
         bloco.assinar(self.chave_privada)
 
@@ -73,35 +69,40 @@ class Usuario:
             if log_callback:
                 log_callback(f"Falha ao adicionar bloco à blockchain!")
             return None
-        
+
     def consentir(self, bloco: Bloco) -> tuple[bool, str]:
         """
         Verifica se o usuário consente com a adição do bloco à blockchain.
         Retorna uma tupla (decisão, motivo).
         """
-        
-        # Delay para visualização
+
         time.sleep(random.uniform(0.5, 1))
-        
-        # Chance de 10% de não consentir (simulando discordância)
+
         if random.random() < 0.1:
             return False, "Decisão aleatória de não consentir"
-        
+
         if bloco.hash_anterior != self.blockchain.ultimo_bloco().hash:
             return False, "Hash anterior inválido"
-        
+
         chave_minerador = self.blockchain.get_chave(bloco.minerador)
-        if not chave_minerador or not bloco.validar(chave_minerador):
+        chave_emitente = self.blockchain.get_chave(bloco.transacao.remetente)
+
+        if bloco.transacao.remetente not in self.blockchain.usuarios_por_id:
+            return False, "Remetente está banido da blockchain"
+
+        if bloco.transacao.destinatario not in self.blockchain.usuarios_por_id:
+            return False, "Destinatário está banido da blockchain"
+
+        if not chave_minerador or not bloco.validar(chave_minerador) or not bloco.validar(chave_emitente):
             return False, "Validação criptográfica falhou"
-        
+
         if bloco.transacao.pontos <= 0:
             return False, "Valor da transação inválido"
-        
+
         if bloco.transacao.remetente == UUID(int=0):
             return True, "Transação genesis aprovada"
-        
+
         if not self.blockchain.compare_pontos(bloco.transacao.remetente, bloco.transacao.pontos):
             return False, "Saldo insuficiente do remetente"
-        
-        return True, "Bloco válido e aprovado"
 
+        return True, "Bloco válido e aprovado"
