@@ -14,7 +14,6 @@ class Transacao:
         self.remetente = remetente
         self.destinatario = destinatario
         self.pontos = pontos
-        self.timestamp = datetime.datetime.now()
         self.id = uuid4()
 
         self.assinatura = None
@@ -25,7 +24,6 @@ class Transacao:
         digest.update(self.remetente.bytes)
         digest.update(self.destinatario.bytes)
         digest.update(str(self.pontos).encode('utf-8'))
-        digest.update(str(self.timestamp).encode('utf-8'))
         digest.update(str(self.id).encode('utf-8'))
         return digest.digest()
 
