@@ -8,6 +8,7 @@ from src.blockchain import Blockchain
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey, RSAPrivateKey
 
+
 class Usuario:
     """
     Classe que representa um usário na blockchain.

@@ -18,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
 def iniciar_demo():
     """Inicia a demonstração da blockchain com dados de exemplo"""
     if "blockchain" not in st.session_state:

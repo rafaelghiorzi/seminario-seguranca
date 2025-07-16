@@ -8,7 +8,6 @@ from typing import List, Dict, Set, Optional, DefaultDict, TYPE_CHECKING
 if TYPE_CHECKING:
     from src.usuario import Usuario
 
-
 class Blockchain:
     """
     Classe principal que representa a blockchain.
