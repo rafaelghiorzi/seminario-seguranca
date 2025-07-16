@@ -36,7 +36,6 @@ def iniciar_demo():
 
         st.session_state.transacoes_pendentes = []
 
-
 def exibir_blockchain():
     """Visualiza a cadeia de blocos e informações detalhadas"""
     st.subheader("Blockchain")
@@ -173,7 +172,6 @@ def exibir_blockchain():
                 break
     st.write(f"**Minerador do bloco:** {nome_minerador}")
 
-
 def criar_e_minerar_transacao():
     """
     Interface para criar e minerar um bloco com uma transação.
@@ -290,7 +288,6 @@ def criar_e_minerar_transacao():
             time.sleep(5)
             st.rerun()
 
-
 def criar_bloco_falho():
     """
     Cria um bloco falho para testar a verificação da blockchain.
@@ -302,7 +299,6 @@ def criar_bloco_falho():
     )
 
     st.session_state.blockchain.cadeia.append(bloco)
-
 
 def exibir_comunidade():
     """Visualiza o grafo de relacionamento da comunidade e informações dos usuários"""
@@ -562,7 +558,6 @@ def exibir_comunidade():
         else:
             st.info("Nenhum usuário banido para desbanir.")
 
-
 def main():
     iniciar_demo()
 
@@ -613,7 +608,6 @@ def main():
 
     if st.sidebar.button("Destrutivo: Criar um bloco falho"):
         criar_bloco_falho()
-
 
 if __name__ == "__main__":
     main()
