@@ -91,7 +91,9 @@ class Usuario:
             return False, "Hash anterior inválido"
         
         chave_minerador = self.blockchain.get_chave(bloco.minerador)
-        if not chave_minerador or not bloco.validar(chave_minerador):
+        chave_emitente = self.blockchain.get_chave(bloco.transacao.remetente)
+
+        if not chave_minerador or not bloco.validar(chave_minerador) or not bloco.validar(chave_emitente):
             return False, "Validação criptográfica falhou"
         
         if bloco.transacao.pontos <= 0:

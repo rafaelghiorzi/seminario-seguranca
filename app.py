@@ -12,11 +12,12 @@ from src.transacao import Transacao
 from src.blockchain import Blockchain
 
 st.set_page_config(
-    page_title="Blockchain Educacional",
+    page_title="Blockchain",
     page_icon="⛓️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 
 def iniciar_demo():
     """Inicia a demonstração da blockchain com dados de exemplo"""
@@ -34,6 +35,7 @@ def iniciar_demo():
             st.session_state.usuarios.append(usuario)
 
         st.session_state.transacoes_pendentes = []
+
 
 def exibir_blockchain():
     """Visualiza a cadeia de blocos e informações detalhadas"""
@@ -171,6 +173,7 @@ def exibir_blockchain():
                 break
     st.write(f"**Minerador do bloco:** {nome_minerador}")
 
+
 def criar_e_minerar_transacao():
     """
     Interface para criar e minerar um bloco com uma transação.
@@ -287,6 +290,7 @@ def criar_e_minerar_transacao():
             time.sleep(5)
             st.rerun()
 
+
 def criar_bloco_falho():
     """
     Cria um bloco falho para testar a verificação da blockchain.
@@ -298,6 +302,7 @@ def criar_bloco_falho():
     )
 
     st.session_state.blockchain.cadeia.append(bloco)
+
 
 def exibir_comunidade():
     """Visualiza o grafo de relacionamento da comunidade e informações dos usuários"""
@@ -401,14 +406,14 @@ def exibir_comunidade():
                     mode="markers+text",
                     text=node_text_ativo,
                     textposition="middle center",
-                    textfont=dict(color="black", size=12),
+                    textfont=dict(color="white", size=12),
                     hovertext=node_info_ativo,
                     hoverinfo="text",
                     name="Usuários Ativos",
                     marker=dict(
-                        size=70,
-                        color="lightgreen",
-                        line=dict(width=2, color="darkgreen"),
+                        size=60,
+                        color="darkgreen",
+                        line=dict(width=2, color="green"),
                     ),
                 )
                 traces.append(node_trace_ativo)
@@ -421,12 +426,12 @@ def exibir_comunidade():
                     mode="markers+text",
                     text=node_text_banido,
                     textposition="middle center",
-                    textfont=dict(color="black", size=12),
+                    textfont=dict(color="white", size=12),
                     hovertext=node_info_banido,
                     hoverinfo="text",
                     name="Usuários Banidos",
                     marker=dict(
-                        size=70, color="red", line=dict(width=2, color="darkred")
+                        size=60, color="darkred", line=dict(width=2, color="red")
                     ),
                 )
                 traces.append(node_trace_banido)
@@ -557,10 +562,11 @@ def exibir_comunidade():
         else:
             st.info("Nenhum usuário banido para desbanir.")
 
+
 def main():
     iniciar_demo()
 
-    st.markdown("# Blockchain Educacional")
+    st.markdown("# Blockchain")
     st.sidebar.title("Navegação")
 
     paginas = {
@@ -607,6 +613,7 @@ def main():
 
     if st.sidebar.button("Destrutivo: Criar um bloco falho"):
         criar_bloco_falho()
+
 
 if __name__ == "__main__":
     main()

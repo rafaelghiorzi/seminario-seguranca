@@ -117,8 +117,6 @@ class Blockchain:
         validação completa e consenso entre os usuários.
         """
 
-        # Essa é a lógica mais importante do projeto
-
         # Cada usuário deve consentir com a adição do bloco
         if len(self.usuarios_registrados) > 1:
             favoraveis = 0
