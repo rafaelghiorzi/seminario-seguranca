@@ -19,15 +19,10 @@ class Blockchain:
         self.cadeia: List[Bloco] = []
         self.tamanho = 0
 
-        # Grafo dos usuários.
         self.comunidade: DefaultDict[UUID, Set[UUID]] = defaultdict(set)
-        # Mapeamento das chaves públicas.
         self.chaves_publicas: Dict[UUID, RSAPublicKey] = {}
-        # Lista de usuários para o mecanismo de consenso.
         self.usuarios_registrados: List["Usuario"] = []
-        # Mapeando usuários para seus ids
         self.usuarios_por_id: Dict[UUID, "Usuario"] = {}
-        # Lista completa de todos os usuários (ativos e banidos)
         self.todos_usuarios: List["Usuario"] = []
 
         self._genesis_block()
@@ -117,7 +112,6 @@ class Blockchain:
         validação completa e consenso entre os usuários.
         """
 
-        # Cada usuário deve consentir com a adição do bloco
         if len(self.usuarios_registrados) > 1:
             favoraveis = 0
             total_usuarios = len(
@@ -125,8 +119,7 @@ class Blockchain:
             )
             votos = []
 
-            # 1/3 dos usuários devem aprovar
-            necessario = total_usuarios // 3 + 1
+            necessario = (total_usuarios // 2) + 1
 
             if log_callback:
                 log_callback(
@@ -149,11 +142,10 @@ class Blockchain:
                         if log_callback:
                             log_callback(f"✅ {usuario.nome}: APROVOU - {motivo}")
 
-                        # Parada brusca: se alcançou o necessário, pare imediatamente
                         if favoraveis >= necessario:
                             if log_callback:
                                 log_callback(
-                                    f"Consenso de 1/3 alcançado: {favoraveis}/{total_usuarios} votos favoráveis!"
+                                    f"Consenso da maioria alcançado: {favoraveis}/{total_usuarios} votos favoráveis!"
                                 )
                             print(
                                 f"Bloco {bloco.id} minerado por {bloco.minerador} com sucesso!"
@@ -163,7 +155,6 @@ class Blockchain:
                         if log_callback:
                             log_callback(f"❌ {usuario.nome}: REJEITOU - {motivo}")
 
-            # Verificar se obteve consenso (1/3 dos usuários)
             if favoraveis < necessario:
                 if log_callback:
                     log_callback(
@@ -174,7 +165,6 @@ class Blockchain:
                 )
                 return False
 
-        # Atualizar saldos dos usuários envolvidos na transação (se não for genesis)
         if bloco.transacao.remetente != UUID(int=0):
             remetente_usuario = self.usuarios_por_id.get(
                 bloco.transacao.remetente, None
@@ -184,7 +174,6 @@ class Blockchain:
             )
 
             if remetente_usuario and destinatario_usuario:
-                # Verificar novamente o saldo antes de atualizar
                 if remetente_usuario.pontos >= bloco.transacao.pontos:
                     remetente_usuario.pontos -= bloco.transacao.pontos
                     destinatario_usuario.pontos += bloco.transacao.pontos
@@ -206,7 +195,6 @@ class Blockchain:
         self.cadeia.append(bloco)
         self.tamanho += 1
 
-        # Conectando dois usuários no grafo da comunidade
         remetente = bloco.transacao.remetente
         destinatario = bloco.transacao.destinatario
         if remetente != UUID(int=0):
@@ -221,11 +209,9 @@ class Blockchain:
             bloco_atual = self.cadeia[i]
             bloco_anterior = self.cadeia[i - 1]
 
-            # Verifica o hash do bloco atual
             if bloco_atual.hash != bloco_atual.calcular_hash():
                 raise ValueError(f"Bloco {bloco_atual.id} inválido: hash incorreto")
 
-            # Verifica o hash anterior
             if bloco_atual.hash_anterior != bloco_anterior.hash:
                 raise ValueError(
                     f"Bloco {bloco_atual.id} inválido: hash anterior incorreto"
