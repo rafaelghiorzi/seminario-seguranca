@@ -8,6 +8,7 @@ from typing import List, Dict, Set, Optional, DefaultDict, TYPE_CHECKING
 if TYPE_CHECKING:
     from src.usuario import Usuario
 
+
 class Blockchain:
     """
     Classe principal que representa a blockchain.
@@ -164,6 +165,15 @@ class Blockchain:
                     f"FALHA: Bloco minerado por {bloco.minerador} não obteve consenso."
                 )
                 return False
+        elif len(self.usuarios_registrados) == 1:
+            if log_callback:
+                log_callback(f"❌ ERRO: Apenas um usuário ativo na blockchain.")
+            return False
+        elif len(self.usuarios_registrados) == 0:
+            if log_callback:
+                log_callback(f"❌ ERRO: Nenhum usuário ativo na blockchain.")
+
+            return False
 
         if bloco.transacao.remetente != UUID(int=0):
             remetente_usuario = self.usuarios_por_id.get(
