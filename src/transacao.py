@@ -33,9 +33,9 @@ class Transacao:
         """
         Assina o hash da transação com a chave privada do remetente
         """
-        hash_mensagem = self.calcular_hash()
+        self.hash = self.calcular_hash()
         self.assinatura = chave_privada.sign(
-            hash_mensagem,
+            self.hash,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
                 salt_length=padding.PSS.MAX_LENGTH
