@@ -18,7 +18,7 @@ Este projeto implementa uma blockchain simplificada, com as seguintes funcionali
 
 - **Sistema de usuários** com geração automática de chaves pública e privadas utilizando o algoritmo RSA, feito com a biblioteca *criptography* do Python (chave com 2048 bits)
 - **Transações assinadas digitalmente** usando RSA-PSS com SHA-256, também utilizando a biblioteca *criptography*
-- **Mecanismo de consenso** para aprovar ou recusar a entrada de um bloco na blockchain, baseado em aprovação de 1/3 dos usuários
+- **Mecanismo de consenso** para aprovar ou recusar a entrada de um bloco na blockchain, baseado em aprovação da maioria simples dos usuários
 - **Interface web interativa** construída com Streamlit
 - **Visualizações com grafos** da rede de usuários e estrutura da blockchain
 - **Sistema de saldos** onde cada usuário pode receber e enviar pontos de/para outros usuários
@@ -43,7 +43,7 @@ O projeto é organizado da seguinte forma:
 - Assinatura das transações utilizando a chave privada do usuário
 - Verificação criptográfica das assinaturas
 - Usuário cria transação e minera o bloco
-- Aprovação de 1/3 dos usuários da rede para a inserção, sendo verificados hash, assinatura e saldos para permitir com que uma transação seja feita
+- Aprovação da maioria dos usuários da rede para a inserção, sendo verificados hash, assinatura e saldos para permitir com que uma transação seja feita
 - Visualização da Blockchain seguindo uma estrutura linear
 - Informações completas de cada bloco inserido
 - Detecção de blocos corrompidos ou alterados e validação de hashes sequenciais dos blocos
