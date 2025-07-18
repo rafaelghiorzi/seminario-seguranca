@@ -71,38 +71,22 @@ class Usuario:
             return None
 
     def consentir(self, bloco: Bloco) -> tuple[bool, str]:
-        """
-        Verifica se o usuário consente com a adição do bloco à blockchain.
-        Retorna uma tupla (decisão, motivo).
-        """
-
+        #Retorna uma tupla: caso ocorra algum erro, False e o motivo do erro, caso nao, True e mensagem de sucesso
         time.sleep(random.uniform(0.5, 1))
-
-        if random.random() < 0.1:
+        if random.random() < 0.1: #Simula decisao maliciosa
             return False, "Decisão aleatória de não consentir"
-
         if bloco.hash_anterior != self.blockchain.ultimo_bloco().hash:
-            return False, "Hash anterior inválido"
-
+            return False, "Hash anterior inválido" #Verifica hash anterior
+        if bloco.transacao.remetente not in self.blockchain.usuarios_por_id or bloco.transacao.destinatario not in self.blockchain.usuarios_por_id:
+            return False, "Algum participante da transação está banido da blockchain"
         chave_minerador = self.blockchain.get_chave(bloco.minerador)
         chave_emitente = self.blockchain.get_chave(bloco.transacao.remetente)
-
-        if bloco.transacao.remetente not in self.blockchain.usuarios_por_id:
-            return False, "Remetente está banido da blockchain"
-
-        if bloco.transacao.destinatario not in self.blockchain.usuarios_por_id:
-            return False, "Destinatário está banido da blockchain"
-
-        if not chave_minerador or not bloco.validar(chave_minerador) or not bloco.validar(chave_emitente):
+        if not chave_minerador or not bloco.validar(chave_minerador) or not bloco.validar(chave_emitente): #Verifica assinaturas
             return False, "Validação criptográfica falhou"
-
-        if bloco.transacao.pontos <= 0:
+        if bloco.transacao.pontos <= 0: #Verifica se foi passado um valor invalido
             return False, "Valor da transação inválido"
-
-        if bloco.transacao.remetente == UUID(int=0):
-            return True, "Transação genesis aprovada"
-
-        if not self.blockchain.compare_pontos(bloco.transacao.remetente, bloco.transacao.pontos):
+        if bloco.transacao.remetente == UUID(int=0): #Aprova bloco genesis
+            return True, "Transação gênesis aprovada"
+        if not self.blockchain.compare_pontos(bloco.transacao.remetente, bloco.transacao.pontos): #Verifica se remetente tem saldo suficiente
             return False, "Saldo insuficiente do remetente"
-
         return True, "Bloco válido e aprovado"

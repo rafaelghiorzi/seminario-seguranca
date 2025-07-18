@@ -26,7 +26,7 @@ def iniciar_demo():
 
         fake = faker.Faker("pt_BR")
         st.session_state.usuarios = []
-        for _ in range(15):
+        for _ in range(10):
             nome = fake.name()
             usuario = Usuario(
                 nome, st.session_state.blockchain, random.uniform(10, 100)
@@ -87,7 +87,7 @@ def exibir_blockchain():
 
     st.subheader("Visualização da Blockchain")
 
-    #apresenta todos os blocos presentes na blockchain, encadeados
+    # apresenta todos os blocos presentes na blockchain, encadeados
     fig = go.Figure()
 
     for i, bloco in enumerate(blockchain.cadeia):
@@ -155,12 +155,8 @@ def exibir_blockchain():
     st.write("**Informações da Transação:**")
     st.write(f"- **ID da Transação:** {str(bloco.transacao.id)}")
 
-    nome_remetente = (
-        "Sistema"
-    )
-    nome_destinatario = (
-        "Sistema"
-    )
+    nome_remetente = "Sistema"
+    nome_destinatario = "Sistema"
 
     if bloco.transacao.remetente != UUID(int=0):
         for usuario in st.session_state.usuarios:
@@ -176,8 +172,8 @@ def exibir_blockchain():
 
     st.write(f"- **Remetente:** {bloco.transacao.remetente} ({nome_remetente})")
     st.write(
-            f"- **Destinatário:** {bloco.transacao.destinatario} ({nome_destinatario})"
-        )
+        f"- **Destinatário:** {bloco.transacao.destinatario} ({nome_destinatario})"
+    )
     st.write(f"- **Pontos:** {bloco.transacao.pontos:.2f}")
 
     nome_minerador = "Sistema"
@@ -311,7 +307,6 @@ def criar_bloco_falho():
 
 def exibir_comunidade():
     """Visualiza o grafo de relacionamento da comunidade e informações dos usuários"""
-    st.subheader("Comunidade da Rede")
 
     blockchain = st.session_state.blockchain
 
@@ -320,7 +315,7 @@ def exibir_comunidade():
     if not blockchain.comunidade:
         st.info("Nenhuma transação registrada. O grafo está vazio.")
     else:
-        #cria grafo da relação entre os usuários
+        # cria grafo da relação entre os usuários
         G = nx.Graph()
 
         for usuario in st.session_state.usuarios:
@@ -330,7 +325,7 @@ def exibir_comunidade():
 
         for remetente, destinatarios in blockchain.comunidade.items():
             for destinatario in destinatarios:
-                if remetente != UUID(int=0):  
+                if remetente != UUID(int=0):
                     G.add_edge(str(remetente), str(destinatario))
 
         if len(G.edges()) == 0:
@@ -405,7 +400,7 @@ def exibir_comunidade():
                     mode="markers+text",
                     text=node_text_ativo,
                     textposition="middle center",
-                    textfont=dict(color="white", size=12),
+                    textfont=dict(color="black", size=12),
                     hovertext=node_info_ativo,
                     hoverinfo="text",
                     name="Usuários Ativos",
@@ -424,7 +419,7 @@ def exibir_comunidade():
                     mode="markers+text",
                     text=node_text_banido,
                     textposition="middle center",
-                    textfont=dict(color="white", size=12),
+                    textfont=dict(color="black", size=12),
                     hovertext=node_info_banido,
                     hoverinfo="text",
                     name="Usuários Banidos",
@@ -438,7 +433,8 @@ def exibir_comunidade():
                 data=traces,
                 layout=go.Layout(
                     title=dict(
-                        text="Relacionamentos entre Usuários", font=dict(size=16)
+                        text="Relacionamentos entre Usuários",
+                        font=dict(size=16, color="black"),
                     ),
                     hovermode="closest",
                     margin=dict(b=20, l=5, r=5, t=40),
@@ -452,11 +448,24 @@ def exibir_comunidade():
                             y=-0.002,
                             xanchor="left",
                             yanchor="bottom",
-                            font=dict(color="gray", size=12),
+                            font=dict(color="black", size=12),
                         )
                     ],
-                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    xaxis=dict(
+                        showgrid=False,
+                        zeroline=False,
+                        showticklabels=False,
+                        color="black",
+                    ),
+                    yaxis=dict(
+                        showgrid=False,
+                        zeroline=False,
+                        showticklabels=False,
+                        color="black",
+                    ),
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    font=dict(color="black"),
                 ),
             )
 
@@ -470,7 +479,7 @@ def exibir_comunidade():
 
     dados_usuarios = []
 
-    #dados de todos os usuários da rede
+    # dados de todos os usuários da rede
     for usuario in st.session_state.usuarios:
         status = "Ativo" if usuario.id in blockchain.usuarios_por_id else "Banido"
         dados_usuarios.append(
@@ -486,9 +495,9 @@ def exibir_comunidade():
 
     def highlight_status(row):
         if row["Status"] == "Ativo":
-            return ["background-color: #11181a"] * len(row)
+            return ["background-color: #e8f5e8"] * len(row)
         else:
-            return ["background-color: #290707"] * len(row)
+            return ["background-color: #ffe8e8"] * len(row)
 
     styled_df = df.style.apply(highlight_status, axis=1)
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
@@ -497,7 +506,7 @@ def exibir_comunidade():
 
     col1, col2 = st.columns(2)
 
-    #banir usuario
+    # banir usuario
     with col1:
         st.write("**Banir Usuário**")
         usuarios_ativos = [
@@ -524,7 +533,7 @@ def exibir_comunidade():
         else:
             st.info("Nenhum usuário ativo para banir.")
 
-    #desbanir usuário
+    # desbanir usuário
     with col2:
         st.write("**Desbanir Usuário**")
         usuarios_banidos = [
@@ -596,7 +605,7 @@ def main():
     elif pagina_id == "transacao":
         criar_e_minerar_transacao()
 
-    #verifica se todos os blocos estão corretos
+    # verifica se todos os blocos estão corretos
     st.sidebar.markdown("---")
     if st.sidebar.button("Verificar Integridade"):
         try:
@@ -605,7 +614,7 @@ def main():
         except Exception as e:
             st.sidebar.error(f"Erro: {str(e)}")
 
-    #cria bloco falho para dar erro na blockchain
+    # cria bloco falho para dar erro na blockchain
     if st.sidebar.button("Destrutivo: Criar um bloco falho"):
         criar_bloco_falho()
 
